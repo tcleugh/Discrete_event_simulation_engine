@@ -86,29 +86,38 @@ function plot_mean_and_proportion(scenario::NetworkParameters;
 
     for λ in lambda_range
 
-        in_queue_traj, in_transit_traj = Int[], Int[]
+        in_queue, in_transit = Int[], Int[]
 
-        function record_traj(time::Float64, state::NetworkState) 
+        function record(time::Float64, state::NetworkState) 
             #println("time = $time, $(state.queues)")
             #push!(time_traj, time)
-            push!(in_queue_traj, sum(state.queues))
-            push!(in_transit_traj, state.in_transit)
+            push!(in_queue, sum(state.queues))
+            push!(in_transit, state.in_transit)
             return nothing
         end
 
-        params = NetworkParameters(scenario, λ = λ)
+        init_state = NetworkState(scenario, λ)
 
-        simulate(params, max_time = max_time, call_back = record_traj)
+        simulate(init_state, max_time = max_time, call_back = record)
 
-        total_in_system = sum(in_queue_traj) + sum(in_transit_traj)
+        total_in_system = sum(in_queue) + sum(in_transit)
 
-        push!(mean_jobs,  total_in_system / length(in_queue_traj))
-        push!(proportions, sum(in_transit_traj) / total_in_system)
+        push!(mean_jobs,  total_in_system / length(in_queue))
+        push!(proportions, sum(in_transit) / total_in_system)
         
     end    
     
-    display(plot(lambda_range, mean_jobs, title = "Mean number of jobs in system $scenario_label", xlabel = "λ", ylabel = "Mean num jobs", label = false))
-    display(plot(lambda_range, proportions, title = "Proportion of jobs in orbit $scenario_label", xlabel = "λ", ylabel = "Proportion", label = false))  
+    display(plot(lambda_range, mean_jobs, 
+                    title = "Mean number of jobs in system $scenario_label", 
+                    xlabel = "λ", 
+                    ylabel = "Mean num jobs", 
+                    label = false))
+
+    display(plot(lambda_range, proportions, 
+                    title = "Proportion of jobs in orbit $scenario_label", 
+                    xlabel = "λ", 
+                    ylabel = "Proportion", 
+                    label = false))  
 
 end
 
@@ -135,21 +144,62 @@ function plot_empirical_distribution(scenario::NetworkParameters;
             return nothing
         end
 
-        params = NetworkParameters(scenario, λ = λ)
+        init_state = TrackedNetworkState(scenario, λ)
 
-        simulate_tracked(params, max_time = max_time, call_back = record_durations)
+        simulate(init_state, max_time = max_time, call_back = record_durations)
         
         push!(all_durations, durations)
     end    
     
-    p = plot(title = "Empirical distribution of sojurn time $scenario_label", xlabel = "Duration", ylabel = "Density")
+    p = plot(title = "Empirical CDF of sojurn time $scenario_label", xlabel = "Duration", ylabel = "Probability")
     for i in 1:length(lambda_range)
-        density!(all_durations[i], label = "λ = $(lambda_range[i])")
+        n = length(all_durations[i])
+        plot!(sort(all_durations[i]), (1:n)./n, label = "λ = $(lambda_range[i])")
     end
     display(p)
 
 end
 
+
+
+function run_default_sims()
+
+    lambda_range = 0.1:0.1:5
+    simulation_time = 10.0^5
+
+    for (i, scenario) in enumerate(get_scenarios()[1:4])
+        plot_mean_and_proportion(scenario, 
+                                 max_time = simulation_time,
+                                 lambda_range = lambda_range,
+                                 scenario_label = "scenario $i"
+                                 )
+
+        plot_empirical_distribution(scenario, 
+                                    max_time = simulation_time, 
+                                    lambda_range = 1.0:10.0, 
+                                    scenario_label = "scenario $i"
+                                    )
+    end
+    
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+####### Not relevant #############
 function do_plots(scenario::NetworkParameters)
     max_time = 100.0
     time_traj, queues_traj, in_transit_traj = Float64[], Vector{Int}[], Int[]
@@ -188,30 +238,4 @@ function do_plots(scenario::NetworkParameters)
     display(p)
 
     time_traj, queues_traj, in_transit_traj, params
-end
-
-
-function run_default_sims()
-
-    for scenario in get_scenarios()
-        #do_plots(scenario)
-    end
-
-    lambda_range = 0.1:0.1:5
-    simulation_time = 10.0^3
-
-    for (i, scenario) in enumerate(get_scenarios()[1:4])
-        plot_mean_and_proportion(scenario, 
-                                 max_time = simulation_time,
-                                 lambda_range = lambda_range,
-                                 scenario_label = "scenario $i"
-                                 )
-
-        plot_empirical_distribution(scenario, 
-                                    max_time = simulation_time, 
-                                    lambda_range = lambda_range, 
-                                    scenario_label = "scenario $i"
-                                    )
-    end
-    
 end
