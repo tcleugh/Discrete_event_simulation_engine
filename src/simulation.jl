@@ -1,23 +1,6 @@
-using DataStructures
-import Base: isless
-#add more stufff
-
-
-
-
-
-####
-abstract type Event end
-abstract type State end
-
-#Captures an event and the time it takes place
-struct TimedEvent
-    event::Event
-    time::Float64
-end
-
-#Comparison of two timed events - this will allow us to use them in a heap/priority-queue
-isless(te1::TimedEvent,te2::TimedEvent) = te1.time < te2.time
+##############################################
+######### Define all processing ##############
+##############################################
 
 #This is an abstract function 
 """
@@ -26,10 +9,6 @@ It will generally be called as
 It will generate 0 or more new timed events based on the current event
 """
 function process_event end
-
-#Generic events that we can always use
-struct EndSimEvent <: Event end
-struct LogStateEvent <: Event end
 
 function process_event(time::Float64, state::State, es_event::EndSimEvent)
     println("Ending simulation at time $time.")
@@ -43,11 +22,84 @@ function process_event(time::Float64, state::State, ls_event::LogStateEvent)
 end;
 
 """
+Attempts to add a job to the specified queue and handles overflow if queue is full
+
+Returns any new events created in the process
+"""
+function add_to_queue(q::Int, time::Float64, state::State)
+    new_timed_events = TimedEvent[]
+
+    if state.queues[q] < state.params.K[q]
+        state.queues[q] += 1  #increase number in chosen queue
+    
+        #if this is the only job on the server engage service
+        state.queues[q] == 1 && push!(new_timed_events,
+                                    TimedEvent(EndOfServiceAtQueueEvent(q), time + next_service_time(state, q)))
+
+    # if selected queue is full sends to overflow
+    else
+        # Selects a new queue bases on overflow matrix
+        next_q = get_next_queue(q, state.params.Q)
+        if next_q > 0
+            state.in_transit += 1
+            push!(new_timed_events, TimedEvent(InTransitEvent(next_q), time + travel_time(state)))
+        end
+    end
+
+    return new_timed_events
+end
+
+function process_event(time::Float64, state::State, arrival_event::ExternalArrivalEvent)
+    new_timed_events = TimedEvent[]
+
+    next_q = get_entry_queue(state.params.p_e)
+    append!(new_timed_events, add_to_queue(next_q, time, state))
+
+    #prepare next arrival
+    push!(new_timed_events, TimedEvent(ExternalArrivalEvent(), time + next_arrival_time(state)))
+
+    return new_timed_events
+end
+ 
+#Process an end of service event
+function process_event(time::Float64, state::State, eos_event::EndOfServiceAtQueueEvent)
+    q = eos_event.q
+    new_timed_events = TimedEvent[]
+    
+    state.queues[q] -= 1
+    @assert state.queues[q] ≥ 0
+    
+    #if another customer in the queue then start a new service
+    if state.queues[q] ≥ 1
+        push!(new_timed_events, TimedEvent(EndOfServiceAtQueueEvent(q), time + next_service_time(state, q))) 
+    end
+    
+    # Finds the next queue using the routing matrix
+    next_q = get_next_queue(q, state.params.P)
+
+    if next_q > 0
+        state.in_transit += 1
+        push!(new_timed_events, TimedEvent(InTransitEvent(next_q), time + travel_time(state)))
+    end
+
+    return new_timed_events
+end
+
+function process_event(time::Float64, state::State, transit_event::InTransitEvent)
+    state.in_transit -= 1
+    return add_to_queue(transit_event.q, time, state)
+end
+
+
+
+
+"""
 The main simulation function gets an initial state and an initial event that gets things going.
 Optional arguments are the maximal time for the simulation, times for logging events, and a call back function.
 """
-function simulate(init_state::State, init_timed_event::TimedEvent
-                    ; 
+function simulate(params::NetworkParameters; 
+                    init_queues::Vector{Int} = fill(0, params.L),
+                    init_timed_event::TimedEvent = TimedEvent(ExternalArrivalEvent(), 0.0), 
                     max_time::Float64 = 10.0, 
                     log_times::Vector{Float64} = Float64[],
                     call_back = (time,state) -> nothing)
@@ -57,16 +109,16 @@ function simulate(init_state::State, init_timed_event::TimedEvent
 
     #Put the standard events in the queue
     push!(priority_queue, init_timed_event)
-    push!(priority_queue, TimedEvent(EndSimEvent(),max_time))
+    push!(priority_queue, TimedEvent(EndSimEvent(), max_time))
     for lt in log_times
-        push!(priority_queue,TimedEvent(LogStateEvent(),lt))
+        push!(priority_queue,TimedEvent(LogStateEvent(), lt))
     end
 
     #initilize the state
-    state = deepcopy(init_state)
+    state = NetworkState(init_queues, 0, params)
     time = 0.0
 
-    call_back(time,state)
+    call_back(time, state)
 
     #The main discrete event simulation loop - SIMPLE!
     while true
@@ -83,94 +135,10 @@ function simulate(init_state::State, init_timed_event::TimedEvent
         isa(timed_event.event, EndSimEvent) && break 
 
         #The event may spawn 0 or more events which we put in the priority queue 
-        for nte in new_timed_events
-            push!(priority_queue,nte)
+        for new_event in new_timed_events
+            push!(priority_queue, new_event)
         end
 
-        call_back(time,state)
+        call_back(time, state)
     end
-end
-
-"""
-A convenience function to make a Gamma distribution with desired rate (inverse of shape) and SCV.
-"""
-rate_scv_gamma(desired_rate::Float64, desired_scv::Float64) = Gamma(1/desired_scv, desired_scv/desired_rate)
-
-dist = rate_scv_gamma(3.,0.5)
-@show mean(dist)
-@show scv(dist);
-
-struct TandemNetworkParameters
-    num_nodes::Int #The number of nodes (queues/servers) in the system
-    λ::Float64 #The external arrival rate to the first queue
-    μ_array::Vector{Float64} #The list of the rates of service in each of the queues.
-    scv_array::Vector{Float64} #A list of the squared coefficients of service times.
-end
-
-mutable struct TandemQueueNetworkState <: State
-    queues::Vector{Int} #A vector which indicates the number of customers in each queue
-    params::TandemNetworkParameters #The parameters of the tandem queueing system
-end
- 
-#External arrival to the firt queue
-struct ExternalArrivalEvent <: Event end
- 
-struct EndOfServiceAtQueueEvent <: Event
-    q::Int #The index of the queue where service finished
-end
-
-next_arrival_time(s::State) = rand(Exponential(1/s.params.λ))
-next_service_time(s::State, q::Int) = rand(rate_scv_gamma(s.params.μ_array[q], s.params.scv_array[q]))
-
-function process_event(time::Float64, state::State, arrival_event::ExternalArrivalEvent)
-    state.queues[1] += 1     #increase number in first queue
-    new_timed_events = TimedEvent[]
- 
-    #prepare next arrival
-    push!(new_timed_events, TimedEvent(ExternalArrivalEvent(),time + next_arrival_time(state)))
- 
-    #if this is the only job on the server engage service
-    state.queues[1] == 1 && push!(new_timed_events,
-                                TimedEvent(EndOfServiceAtQueueEvent(1), time + next_service_time(state,1)))
-    return new_timed_events
-end
- 
-#Process an end of service event
-function process_event(time::Float64, state::State, eos_event::EndOfServiceAtQueueEvent)
-    q = eos_event.q
-    new_timed_events = TimedEvent[]
-    
-    state.queues[q] -= 1
-    @assert state.queues[q] ≥ 0
-    
-    #if another customer in the queue then start a new service
-    if state.queues[q] ≥ 1
-        st = next_service_time(state, q)
-        push!(new_timed_events, TimedEvent(EndOfServiceAtQueueEvent(q), time + st)) 
-    end
-    
-    #If there is a downstream queue
-    if q < state.params.num_nodes
-        state.queues[q+1] += 1 #move the job to the downstream queue
-        
-        #if the queue downstream was empty
-        if state.queues[q+1] == 1 
-            st = next_service_time(state, q)
-            push!(new_timed_events, TimedEvent(EndOfServiceAtQueueEvent(q+1), time + st)) 
-        end
-    end
-    
-    return new_timed_events
-end
-
-
-"""
-requires p_e to sum to 1
-"""
-function get_entry_queue(p_e)
-	prob = rand()
-	for i in 1:length(p_e)
-		prob -= p_e[i]
-		prob <= 0 && return i
-	end
 end
