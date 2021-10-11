@@ -29,7 +29,8 @@ Returns any new events created in the process
 function add_to_queue(q::Int, time::Float64, state::State)
     new_timed_events = TimedEvent[]
 
-    if state.queues[q] < state.params.K[q]
+    capacity = state.params.K[q]
+    if capacity == -1 || state.queues[q] < capacity
         state.queues[q] += 1  #increase number in chosen queue
     
         #if this is the only job on the server engage service
