@@ -15,7 +15,7 @@ isless(te1::TimedEvent,te2::TimedEvent) = te1.time < te2.time
 struct EndSimEvent <: Event end
 struct LogStateEvent <: Event end
 
-#External arrival to the firt queue
+#External arrival to the first queue
 struct ExternalArrivalEvent <: Event end
  
 struct EndOfServiceAtQueueEvent <: Event
@@ -25,3 +25,11 @@ end
 struct InTransitEvent <: Event
     q::Int #The index of the destination queue
 end
+
+mutable struct Job 
+    event_time::Float64
+    entry_time::Float64
+    exit_time::Float64
+end
+
+isless(j1::Job, j2::Job) = j1.event_time < j2.event_time

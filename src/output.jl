@@ -84,7 +84,7 @@ function plot_mean_and_proportion(scenario::NetworkParameters;
     mean_jobs, proportions = Float64[], Float64[]
 
 
-    for λi in lambda_range
+    for λ in lambda_range
 
         in_queue_traj, in_transit_traj = Int[], Int[]
 
@@ -96,16 +96,7 @@ function plot_mean_and_proportion(scenario::NetworkParameters;
             return nothing
         end
 
-        params = NetworkParameters(L = scenario.L, 
-                                    gamma_scv = scenario.gamma_scv, 
-                                    λ = λi,
-                                    η = scenario.η,
-                                    μ_vector = copy(scenario.μ_vector),
-                                    P = copy(scenario.P),
-                                    Q = copy(scenario.Q),
-                                    p_e = copy(scenario.p_e),
-                                    K = copy(scenario.K)
-        )
+        params = NetworkParameters(scenario, λ = λ)
 
         simulate(params, max_time = max_time, call_back = record_traj)
 
@@ -125,7 +116,37 @@ end
 """
 Plots the empirical distribution of the sojourn time of a job through the system (varied as a function of λ). for the given scenario.
 """
-function plot_empirical_distribution(scenario::NetworkParameters, lambda_range)
+function plot_empirical_distribution(scenario::NetworkParameters;
+                                        max_time::Float64 = 10.0^7,
+                                        scenario_label::String = "",
+                                        lambda_range = 1.0:5.0)
+
+    all_durations = Vector{Float64}[]
+
+    for λ in lambda_range
+
+        durations = Float64[]
+
+        function record_durations(time::Float64, state::TrackedNetworkState) 
+            while length(state.left_system) > 0
+                job = pop!(state.left_system)
+                push!(durations, job.exit_time - job.entry_time)
+            end
+            return nothing
+        end
+
+        params = NetworkParameters(scenario, λ = λ)
+
+        simulate_tracked(params, max_time = max_time, call_back = record_durations)
+        
+        push!(all_durations, durations)
+    end    
+    
+    p = plot(title = "Empirical distribution of sojurn time $scenario_label", xlabel = "Duration", ylabel = "Density")
+    for i in 1:length(lambda_range)
+        density!(all_durations[i], label = "λ = $(lambda_range[i])")
+    end
+    display(p)
 
 end
 
@@ -177,13 +198,20 @@ function run_default_sims()
     end
 
     lambda_range = 0.1:0.1:5
-    simulation_time = 10.0^5
+    simulation_time = 10.0^3
 
     for (i, scenario) in enumerate(get_scenarios()[1:4])
         plot_mean_and_proportion(scenario, 
-                                max_time = simulation_time,
-                                lambda_range = lambda_range,
-                                scenario_label = "scenario $i")
-    end
+                                 max_time = simulation_time,
+                                 lambda_range = lambda_range,
+                                 scenario_label = "scenario $i"
+                                 )
 
+        plot_empirical_distribution(scenario, 
+                                    max_time = simulation_time, 
+                                    lambda_range = lambda_range, 
+                                    scenario_label = "scenario $i"
+                                    )
+    end
+    
 end
