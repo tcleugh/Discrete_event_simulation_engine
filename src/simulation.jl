@@ -162,3 +162,15 @@ function process_event(time::Float64, state::State, eos_event::EndOfServiceAtQue
     
     return new_timed_events
 end
+
+
+"""
+requires p_e to sum to 1
+"""
+function get_entry_queue(p_e)
+	prob = rand()
+	for i in 1:length(p_e)
+		prob -= p_e[i]
+		prob <= 0 && return i
+	end
+end
