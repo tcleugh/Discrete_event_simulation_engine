@@ -1,4 +1,4 @@
-using Parameters, LinearAlgebra, DataStructures, Plots, Distributions, StatsPlots
+using Parameters, LinearAlgebra, DataStructures, Plots, Distributions
 
 include("event.jl")
 include("state.jl")

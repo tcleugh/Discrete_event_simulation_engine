@@ -164,7 +164,7 @@ end
 
 function run_default_sims()
 
-    lambda_range = 0.1:0.1:5
+    lambda_range = 0.1:1:5
     simulation_time = 10.0^5
 
     for (i, scenario) in enumerate(get_scenarios()[1:4])
