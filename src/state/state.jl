@@ -1,5 +1,46 @@
 abstract type State end
 
+#### Required Interfaces for State #####
+""" queued_count(state)::Int
+
+Returns the total number of jobs in all queues of the system """
+function queued_count end
+""" transit_count(state)::Int
+
+Returns the total number of jobs in transit between queues in the system """
+function transit_count end
+
+""" num_in_queue(q::Int, state)::Int
+
+Returns the number of jobs in the queue with given index """
+function num_in_queue end
+
+""" pop_transit(state)
+
+Removes and returns the next job in transit
+"""
+function pop_transit end
+
+""" pop_queue(q::Int, state)
+
+Removes and returns the next job in specified queue
+"""
+function pop_queue end
+
+""" add_to_queue(q::Int, time::Float64, state::State; job)::Vector{TimedEvent}
+
+Attempts to add a job to the specified queue and handles overflow if queue is full 
+Returns any new events created in the process
+"""
+function add_to_queue end
+
+""" add_to_transit(q::Int, time::Float64, state::TrackedNetworkState; 
+                        job, overflow::Bool = false)::Vector{TimedEvent}
+
+Finds the next queue for the job and moves it into transit to that queue  
+Returns any new events created in the process
+"""
+function add_to_transit end
 
 
 @with_kw struct NetworkParameters
@@ -17,7 +58,7 @@ end
 function NetworkParameters(params::NetworkParameters; λ::Float64 = NaN)::NetworkParameters
     return NetworkParameters(L = params.L, 
                              gamma_scv = params.gamma_scv, 
-                             λ = λ,
+                             λ = convert(Float64, λ),
                              η = params.η,
                              μ_vector = copy(params.μ_vector),
                              P = copy(params.P),
@@ -27,11 +68,10 @@ function NetworkParameters(params::NetworkParameters; λ::Float64 = NaN)::Networ
 end
 
 
-
-
-####################
-# Helper Functions #
-####################
+"""
+Returns a Gamma distribution with desired rate (inverse of shape) and SCV.
+"""
+rate_scv_gamma(desired_rate::Float64, desired_scv::Float64) = Gamma(1/desired_scv, desired_scv/desired_rate)
 
 """ Generates next arrival time from state """
 next_arrival_time(s::State)::Float64 = rand(Exponential(1/s.params.λ))
@@ -42,7 +82,36 @@ next_service_time(s::State, q::Int)::Float64 = rand(rate_scv_gamma(s.params.μ_v
 """ Generates travel time between queues from state """
 travel_time(s::State)::Float64 = rand(rate_scv_gamma(s.params.η, s.params.gamma_scv))
 
+""" Randomly selects an entry queue index using the state weights """
+function get_entry_queue(state::State)::Int
+	prob = rand()
+	for i in 1:length(state.params.p_e)
+		prob -= state.params.p_e[i]
+		prob <= 0 && return i
+	end
+    error("Entry probabilities do not sum to 1")
+end
+
 """
-Returns a Gamma distribution with desired rate (inverse of shape) and SCV.
+Randomly selects the next queue for the job from the given routing or overflow matrix weights
+Returns -1 corresponding to exiting the system.
 """
-rate_scv_gamma(desired_rate::Float64, desired_scv::Float64) = Gamma(1/desired_scv, desired_scv/desired_rate)
+function get_next_queue(q::Int, state::State; overflow::Bool = false)::Int
+    P = (overflow) ? state.params.Q : state.params.P
+    next_probs = P[q,:] # Gets the probability row vector corresponding to the current queue 
+
+    prob = rand()
+	for i in 1:length(next_probs)
+		prob -= next_probs[i]
+		prob <= 0 && return i
+	end
+    return -1
+end
+
+""" Returns total number of jobs in the system """
+total_count(state::State)::Int = queued_count(state) + transit_count(state)
+
+""" Returns whether the number of jobs in specified queue is equal to queue capacity """
+is_full(q::Int, state::State)::Bool = (state.params.K[q] != -1) && num_in_queue(q, state) == state.params.K[q] 
+
+

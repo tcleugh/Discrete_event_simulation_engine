@@ -72,7 +72,6 @@ function get_scenarios()::Vector{NetworkParameters}
     return [scenario1, scenario2, scenario3, scenario4, scenario5]
 end
 
-
 function plot_simulation_summary(scenario::NetworkParameters;
                                                 max_time::Float64 = 10.0^7,
                                                 scenario_label::String = "",
@@ -83,26 +82,22 @@ function plot_simulation_summary(scenario::NetworkParameters;
     for λ in lambda_range
         in_system, in_transit, durations = Int[], Int[], Float64[]
 
-        function record(time::Float64, state::FullTrackedNetworkState) 
+        function record(time::Float64, state::TrackedNetworkState) 
+            push!(in_system, total_count(state))
+            push!(in_transit, transit_count(state))
+            
             while length(state.left_system) > 0
-
-                push!(in_system, total_count(state))
-                push!(in_transit, transit_count(state))
-
                 job = pop!(state.left_system)
                 push!(durations, duration(job))
                 end
             return nothing
         end
 
-        init_state = FullTrackedNetworkState(scenario, λ)
-        simulate(init_state, max_time = max_time, call_back = record)
+        simulate(TrackedNetworkState(scenario, λ), max_time = max_time, call_back = record)
 
         push!(mean_jobs,  sum(in_system) / length(in_system))
         push!(proportions, sum(in_transit) / sum(in_system))
         push!(all_durations, durations)
-
-        
     end    
 
     display(plot(lambda_range, mean_jobs, 
@@ -131,67 +126,58 @@ end
 
 
 function run_default_sims()
-
     lambda_range = 0.1:0.1:5
     simulation_time = 10.0^4
 
-    
     for (i, scenario) in enumerate(get_scenarios()[1:4])
         plot_simulation_summary(scenario, 
                                      max_time = simulation_time,
                                      lambda_range = lambda_range,
-                                     scenario_label = "scenario $i"
-                                     )
+                                     scenario_label = "scenario $i")
     end
-
 end
 
+function run_tracking_sim(scenario::NetworkParameters, λ::Float64; 
+                            max_time::Float64 = 10.0, log_times::Vector{Float64} = [max_time - 10.0^(-10)], full_history::Bool = false)
+    simulate(TrackedNetworkState(scenario, λ), 
+                max_time = max_time, 
+                call_back = (full_history) ? (time, state) -> nothing : (time, state) -> empty!(state.left_system),
+                log_times = log_times)
+end
 
+function run_default_no_tracking()
+    lambda_range = 0.1:0.1:5
+    max_time = 10.0^4
 
+    for (i, scenario) in enumerate(get_scenarios()[1:4])
+        mean_jobs, proportions = Float64[], Float64[]
 
+        for λ in lambda_range
+            in_system, in_transit = Int[], Int[]
 
+            function record(time::Float64, state::NetworkState) 
+                push!(in_system, total_count(state))
+                push!(in_transit, transit_count(state))
+                return nothing
+            end
 
+            simulate(NetworkState(scenario, λ), max_time = max_time, call_back = record)
 
+            push!(mean_jobs,  sum(in_system) / length(in_system))
+            push!(proportions, sum(in_transit) / sum(in_system))
+        end    
 
+        display(plot(lambda_range, mean_jobs, 
+                        title = "Mean number of jobs in system scenario $i", 
+                        xlabel = "λ", 
+                        ylabel = "Mean num jobs", 
+                        label = false))
 
+        display(plot(lambda_range, proportions, 
+                        title = "Proportion of jobs in orbit scenario $i", 
+                        xlabel = "λ", 
+                        ylabel = "Proportion", 
+                        label = false)) 
 
-####### Not relevant #############
-function do_plots(scenario::NetworkParameters)
-    max_time = 100.0
-    time_traj, queues_traj, in_transit_traj = Float64[], Vector{Int}[], Int[]
-
-    function record_traj(time::Float64, state::NetworkState) 
-        #println("time = $time, $(state.queues)")
-        push!(time_traj, time)
-        push!(queues_traj, copy(state.queues))
-        push!(in_transit_traj, state.in_transit)
-        return nothing
     end
-
-    λi = 1
-    params = NetworkParameters(L = scenario.L, 
-                               gamma_scv = scenario.gamma_scv, 
-                               λ = λi,
-                               η = scenario.η,
-                               μ_vector = copy(scenario.μ_vector),
-                               P = copy(scenario.P),
-                               Q = copy(scenario.Q),
-                               p_e = copy(scenario.p_e),
-                               K = copy(scenario.K)
-    )
-
-    simulate(params, max_time = max_time, call_back = record_traj)
-    total_queues = map(q_vector -> sum(q_vector), queues_traj)
-    
-    display(plot(time_traj, in_transit_traj, title = "Number of jobs in transit", xlabel = "Time", ylabel = "Num jobs between queues"))
-    display(plot(time_traj, total_queues, title = "Total number of jobs in queues", xlabel = "Time", ylabel = "Total in queues"))
-    
-    p = plot(title = "Number of jobs in each queue", xlabel = "Time", ylabel = "Jobs in queue")
-    for i in 1:params.L
-        queue_counts = map(queues -> queues[i], queues_traj)
-        plot!(time_traj, queue_counts, label = "Queue $i")
-    end
-    display(p)
-
-    time_traj, queues_traj, in_transit_traj, params
 end
