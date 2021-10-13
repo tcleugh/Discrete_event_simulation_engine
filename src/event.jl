@@ -25,11 +25,3 @@ end
 struct InTransitEvent <: Event
     q::Int #The index of the destination queue
 end
-
-mutable struct Job 
-    event_time::Float64
-    entry_time::Float64
-    exit_time::Float64
-end
-
-isless(j1::Job, j2::Job) = j1.event_time < j2.event_time

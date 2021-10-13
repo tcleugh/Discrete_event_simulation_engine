@@ -79,27 +79,31 @@ function add_to_transit(q::Int, M::Matrix{Float64}, time::Float64, state::State)
     return new_timed_events
 end
 
+
 """ 
 Finds the next queue for the job and moves it into transit to that queue  
 Returns any new events created in the process
 With job Tracking
 """
-function add_to_transit(q::Int, M::Matrix{Float64}, time::Float64, state::TrackedNetworkState, job::Job)
+function add_to_transit(q::Int, M::Matrix{Float64}, time::Float64, state::FullTrackedNetworkState, job::JobPath)
     new_timed_events = []
     
     next_q = get_next_queue(q, M)
     if next_q > 0
         transit_time = time + travel_time(state)
-        job.event_time = transit_time
+        push!(job, InTransit(transit_time))
         push!(state.in_transit, job)
         push!(new_timed_events, TimedEvent(InTransitEvent(next_q), transit_time))
     else
-        job.exit_time = time
+        push!(job, LeaveSystem(time))
         push!(state.left_system, job)
     end
 
     return new_timed_events
 end
+
+
+
 
 """
 Attempts to add a job to the specified queue and handles overflow if queue is full 
@@ -128,11 +132,12 @@ Attempts to add a job to the specified queue and handles overflow if queue is fu
 Returns any new events created in the process
 With job tracking
 """
-function add_to_queue(q::Int, time::Float64, state::TrackedNetworkState; job::Job = Job(time, time, -1))
+function add_to_queue(q::Int, time::Float64, state::FullTrackedNetworkState; job::JobPath = JobPath())
     new_timed_events = TimedEvent[]
 
     capacity = state.params.K[q]
     if capacity == -1 || length(state.queues[q]) < capacity
+        push!(job, InQueue(time, q))
         push!(state.queues[q], job) # adds job to selected queue
     
         #if this is the only job on the server engage service
@@ -146,7 +151,7 @@ function add_to_queue(q::Int, time::Float64, state::TrackedNetworkState; job::Jo
     return new_timed_events
 end
 
- 
+
 """ Process an end of service event """
 function process_event(time::Float64, state::State, eos_event::EndOfServiceAtQueueEvent)
     q = eos_event.q
@@ -167,7 +172,7 @@ function process_event(time::Float64, state::State, eos_event::EndOfServiceAtQue
 end
 
 """ Process an end of service event with job tracking """
-function process_event(time::Float64, state::TrackedNetworkState, eos_event::EndOfServiceAtQueueEvent)
+function process_event(time::Float64, state::FullTrackedNetworkState, eos_event::EndOfServiceAtQueueEvent)
     q = eos_event.q
     new_timed_events = TimedEvent[]
     
@@ -184,6 +189,8 @@ function process_event(time::Float64, state::TrackedNetworkState, eos_event::End
     return new_timed_events
 end
 
+
+
 """ Process a transit event """
 function process_event(time::Float64, state::State, transit_event::InTransitEvent)
     state.in_transit -= 1
@@ -191,10 +198,11 @@ function process_event(time::Float64, state::State, transit_event::InTransitEven
 end
 
 """ Process a transit event with job tracking """
-function process_event(time::Float64, state::TrackedNetworkState, transit_event::InTransitEvent)
+function process_event(time::Float64, state::FullTrackedNetworkState, transit_event::InTransitEvent)
     job = pop!(state.in_transit)
     return add_to_queue(transit_event.q, time, state, job = job)
 end
+
 
 
 """
