@@ -12,19 +12,21 @@ struct InTransit <: PositionRecord
 end
 
 struct InQueue <: PositionRecord
-    time::Float64
-    queue::Int
+    time::Float64 #time entered queue
+    queue::Int #queue index
 end
 
 struct LeaveSystem <: PositionRecord
-    time::Float64
+    time::Float64 #time left system
 end
 
 Job() = Job([])
 Job(entry::PositionRecord) = Job([entry])
 
+""" Returns the time the job entered the system """
 entry_time(job::Job)::Float64 = first(job.history).time
 
+""" Returns the time the job exited the system or time of last event if still in the system """
 exit_time(job::Job)::Float64 = last(job.history).time
 
 """ Returns the duration of time the job has spent in the system """
