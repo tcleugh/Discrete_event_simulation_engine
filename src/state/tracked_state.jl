@@ -31,6 +31,31 @@ transit_count(state::TrackedNetworkState)::Int = length(state.in_transit)
 """ Returns the number of jobs in the given queue """
 num_in_queue(q::Int, state::TrackedNetworkState)::Int = length(state.queues[q])
 
+function pop_transit(state::TrackedNetworkState)::Job
+    return pop!(state.in_transit) 
+end
+
+function pop_queue(q::Int, state::TrackedNetworkState)::Job
+    return popfirst!(state.queues[q])
+end
+
+function push_queue(q::Int, time::Float64, state::TrackedNetworkState, job::Job)
+    push!(job, InQueue(time, q))
+    push!(state.queues[q], job) 
+end
+
+function push_transit(time::Float64, transit_time::Float64, state::TrackedNetworkState, job::Job)
+    push!(job, InTransit(time, transit_time))
+    push!(state.in_transit, job)
+end
+
+function remove_job(time::Float64, state::TrackedNetworkState, job::Job)
+    push!(job, LeaveSystem(time))
+    push!(state.left_system, job)
+end
+
+default_job(state::NetworkState)::Job = Job()
+
 """ Prints a full history of all jobs that the system processes, sorted by entry time"""
 function show(io::IO, state::TrackedNetworkState)
     all_jobs = Job[]
@@ -44,52 +69,9 @@ function show(io::IO, state::TrackedNetworkState)
     append!(all_jobs, deepcopy(state.left_system))
     
     sort!(all_jobs, by = (job) -> entry_time(job))
+    println(io, "Tracked State: ")
     for job in all_jobs
         print(io, job.history)
         print(io, "\n")
     end
-end
-
-function pop_transit(state::TrackedNetworkState)::Job
-    return pop!(state.in_transit) 
-end
-
-function pop_queue(q::Int, state::TrackedNetworkState)::Job
-    return popfirst!(state.queues[q])
-end
-
-function add_to_queue(q::Int, time::Float64, state::TrackedNetworkState; job::Job = Job())::Vector{TimedEvent}
-    new_timed_events = TimedEvent[]
-
-    if !is_full(q, state)
-        push!(job, InQueue(time, q))
-        push!(state.queues[q], job) # adds job to selected queue
-    
-        #if this is the only job on the server engage service
-        num_in_queue(q, state) == 1 && push!(new_timed_events,
-                                              TimedEvent(EndOfServiceAtQueueEvent(q), time + next_service_time(state, q)))
-    else
-        #Finds new queue using overflow matrix
-        append!(new_timed_events, add_to_transit(q, time, state, job = job, overflow = true))
-    end
-
-    return new_timed_events
-end
-
-function add_to_transit(q::Int, time::Float64, state::TrackedNetworkState; 
-                            job::Job = Job(), overflow::Bool = false)::Vector{TimedEvent}
-    new_timed_events = []
-    
-    next_q = get_next_queue(q, state, overflow = overflow)
-    if next_q > 0
-        transit_time = time + travel_time(state)
-        push!(job, InTransit(time, transit_time))
-        push!(state.in_transit, job)
-        push!(new_timed_events, TimedEvent(InTransitEvent(next_q), transit_time))
-    else
-        push!(job, LeaveSystem(time))
-        push!(state.left_system, job)
-    end
-
-    return new_timed_events
 end

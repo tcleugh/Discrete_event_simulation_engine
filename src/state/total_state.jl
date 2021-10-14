@@ -37,32 +37,25 @@ function pop_queue(q::Int, state::NetworkState)::Int
     state.queues[q] -= 1
 end
 
-function add_to_queue(q::Int, time::Float64, state::NetworkState; job::Int = 0)::Vector{TimedEvent}
-    new_timed_events = TimedEvent[]
-
-    if !is_full(q, state)
-        state.queues[q] += 1  #increase number in chosen queue
-    
-        #if this is the only job on the server engage service
-        num_in_queue(q, state) == 1 && push!(new_timed_events,
-                                    TimedEvent(EndOfServiceAtQueueEvent(q), time + next_service_time(state, q)))
-    else
-        #Finds new queue using overflow matrix
-        append!(new_timed_events, add_to_transit(q, time, state, overflow = true))
-    end
-
-    return new_timed_events
+function push_queue(q::Int, time::Float64, state::NetworkState, job::Int)
+    state.queues[q] += 1
 end
 
-function add_to_transit(q::Int, time::Float64, state::NetworkState; 
-                            job::Int = 0, overflow::Bool = false)::Vector{TimedEvent}
-    new_timed_events = []
-    
-    next_q = get_next_queue(q, state, overflow = overflow)
-    if next_q > 0
-        state.in_transit += 1
-        push!(new_timed_events, TimedEvent(InTransitEvent(next_q), time + travel_time(state)))
-    end
+function push_transit(time::Float64, transit_time::Float64, state::NetworkState, job::Int)
+    state.in_transit += 1
+end
 
-    return new_timed_events
+function remove_job(time::Float64, state::NetworkState, job::Int)
+    nothing
+end
+
+default_job(state::NetworkState)::Int = 1
+
+""" Prints the current state of the system"""
+function show(io::IO, state::NetworkState)
+    print(io, "State:\n")
+    for (i, queue) in enumerate(state.queues)
+        print(io, "Q$i: $queue\n")
+    end
+    print(io, "T: $(state.in_transit)\n")
 end

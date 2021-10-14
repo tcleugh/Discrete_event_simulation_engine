@@ -72,6 +72,11 @@ function get_scenarios()::Vector{NetworkParameters}
     return [scenario1, scenario2, scenario3, scenario4, scenario5]
 end
 
+"""
+Runs simulations with varied arrival rate where the state keeps track of jobs locations.
+Then plots the mean number of jobs in the system and Proportion of jobs orbiting between queues wrt λ.
+Also plots the emprical distribution of the sojurn time of jobs in the system varied by λ.
+"""
 function plot_simulation_summary(scenario::NetworkParameters;
                                                 max_time::Float64 = 10.0^7,
                                                 scenario_label::String = "",
@@ -123,8 +128,9 @@ function plot_simulation_summary(scenario::NetworkParameters;
 
 end
 
-
-
+"""
+Plots the simulation summarys (see plot_simulation_summary()) of all default scenarios run over a long simulation.
+"""
 function run_default_sims()
     lambda_range = 0.1:0.1:5
     simulation_time = 10.0^4
@@ -137,6 +143,9 @@ function run_default_sims()
     end
 end
 
+"""
+Runs a short simulation of the given scenario printing the full state of the system.
+"""
 function run_tracking_sim(scenario::NetworkParameters, λ::Float64; 
                             max_time::Float64 = 10.0, log_times::Vector{Float64} = [max_time - 10.0^(-10)], full_history::Bool = false)
     simulate(TrackedNetworkState(scenario, λ), 
@@ -145,6 +154,11 @@ function run_tracking_sim(scenario::NetworkParameters, λ::Float64;
                 log_times = log_times)
 end
 
+
+"""
+Runs simulations with varied arrival rate where the state only keeps track of queue and transit totals.
+Then plots the mean number of jobs in the system and Proportion of jobs orbiting between queues wrt λ.
+"""
 function run_default_no_tracking()
     lambda_range = 0.1:0.1:5
     max_time = 10.0^4
@@ -161,7 +175,7 @@ function run_default_no_tracking()
                 return nothing
             end
 
-            simulate(NetworkState(scenario, λ), max_time = max_time, call_back = record)
+            simulate(NetworkState(scenario, λ), max_time = max_time, call_back = record, log_times = [max_time / 2])
 
             push!(mean_jobs,  sum(in_system) / length(in_system))
             push!(proportions, sum(in_transit) / sum(in_system))

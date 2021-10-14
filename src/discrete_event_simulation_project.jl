@@ -9,6 +9,6 @@ include("simulation.jl")
 
 include("output.jl")
 
-#run_default_sims()
-#run_tracking_sim(get_scenarios()[1], 2.0, full_history = true)
+run_default_sims()
+run_tracking_sim(get_scenarios()[1], 2.0, full_history = true)
 run_default_no_tracking()

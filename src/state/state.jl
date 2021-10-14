@@ -27,21 +27,29 @@ Removes and returns the next job in specified queue
 """
 function pop_queue end
 
-""" add_to_queue(q::Int, time::Float64, state::State; job)::Vector{TimedEvent}
+""" push_queue(q::Int, time::Float64, state, job)
 
-Attempts to add a job to the specified queue and handles overflow if queue is full 
-Returns any new events created in the process
+Adds job to the specified queue
 """
-function add_to_queue end
+function push_queue end
 
-""" add_to_transit(q::Int, time::Float64, state::TrackedNetworkState; 
-                        job, overflow::Bool = false)::Vector{TimedEvent}
+""" push_transit(time::Float64, state, job)
 
-Finds the next queue for the job and moves it into transit to that queue  
-Returns any new events created in the process
+Adds job to transit with destination q
 """
-function add_to_transit end
+function push_transit end
 
+""" remove_job(time::Float64, transit_time::Float64, state, job
+
+Removed job from the system
+"""
+function remove_job end
+
+""" default_job(state)
+
+Returns a new job
+"""
+function default_job end
 
 @with_kw struct NetworkParameters
     L::Int #Number of queues
@@ -96,10 +104,11 @@ end
 Randomly selects the next queue for the job from the given routing or overflow matrix weights
 Returns -1 corresponding to exiting the system.
 """
-function get_next_queue(q::Int, state::State; overflow::Bool = false)::Int
-    P = (overflow) ? state.params.Q : state.params.P
-    next_probs = P[q,:] # Gets the probability row vector corresponding to the current queue 
-
+function get_next_queue(q::Int, state::State, mode::Symbol)::Int
+    (mode ∉ [:routing, :overflow]) && error("Invalid mode for queue selection") 
+    # Gets the probability row vector corresponding to the current queue
+    next_probs = (mode == :routing) ? state.params.P[q,:] :  state.params.Q[q,:]  
+    
     prob = rand()
 	for i in 1:length(next_probs)
 		prob -= next_probs[i]
