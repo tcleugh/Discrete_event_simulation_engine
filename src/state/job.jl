@@ -1,4 +1,3 @@
-import Base: push!, isless, show
 
 abstract type PositionRecord end
 

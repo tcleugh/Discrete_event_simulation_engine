@@ -1,4 +1,3 @@
-import Base: show
 
 mutable struct TrackedNetworkState <: State
     queues::Vector{Vector{Job}} #A vector of queues holding the jobs waiting in buffer
@@ -54,7 +53,7 @@ function remove_job(time::Float64, state::TrackedNetworkState, job::Job)
     push!(state.left_system, job)
 end
 
-default_job(state::NetworkState)::Job = Job()
+default_job(state::TrackedNetworkState)::Job = Job()
 
 """ Prints a full history of all jobs that the system processes, sorted by entry time"""
 function show(io::IO, state::TrackedNetworkState)

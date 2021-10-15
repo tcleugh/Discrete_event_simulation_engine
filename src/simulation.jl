@@ -36,7 +36,7 @@ function add_to_queue(q::Int, time::Float64, state::State; job::Union{Int, Job} 
                                     TimedEvent(EndOfServiceAtQueueEvent(q), time + next_service_time(state, q)))
     else
         #Finds new queue using overflow matrix
-        append!(new_timed_events, add_to_transit(q, time, state, job, mode = :Q))
+        append!(new_timed_events, add_to_transit(q, time, state, job, mode = :overflow))
     end
 
     return new_timed_events

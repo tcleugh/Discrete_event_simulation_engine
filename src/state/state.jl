@@ -105,7 +105,7 @@ Randomly selects the next queue for the job from the given routing or overflow m
 Returns -1 corresponding to exiting the system.
 """
 function get_next_queue(q::Int, state::State, mode::Symbol)::Int
-    (mode ∉ [:routing, :overflow]) && error("Invalid mode for queue selection") 
+    (mode ∉ [:routing, :overflow]) && error("$mode is not a valid mode for queue selection") 
     # Gets the probability row vector corresponding to the current queue
     next_probs = (mode == :routing) ? state.params.P[q,:] :  state.params.Q[q,:]  
     

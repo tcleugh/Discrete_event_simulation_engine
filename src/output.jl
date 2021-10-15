@@ -78,19 +78,20 @@ Then plots the mean number of jobs in the system and Proportion of jobs orbiting
 Also plots the emprical distribution of the sojurn time of jobs in the system varied by λ.
 """
 function plot_simulation_summary(scenario::NetworkParameters;
-                                                max_time::Float64 = 10.0^7,
+                                                max_time::Real = 10.0^7,
                                                 scenario_label::String = "",
                                                 lambda_range = 1.0:5.0)
 
     mean_jobs, proportions, all_durations = Float64[], Float64[], Vector{Float64}[]
 
     for λ in lambda_range
-        in_system, in_transit, durations = Int[], Int[], Float64[]
+        num_calls, running_mean, running_prop, durations = 0, 0, 0, Float64[]
 
         function record(time::Float64, state::TrackedNetworkState) 
-            push!(in_system, total_count(state))
-            push!(in_transit, transit_count(state))
-            
+            num_calls += 1
+            total_in_system = total_count(state)
+            running_mean = (running_mean * (num_calls - 1) + total_in_system) / num_calls
+            running_prop = (running_prop * (num_calls - 1) + transit_count(state) / max(total_in_system, 1)) / num_calls
             while length(state.left_system) > 0
                 job = pop!(state.left_system)
                 push!(durations, duration(job))
@@ -100,8 +101,8 @@ function plot_simulation_summary(scenario::NetworkParameters;
 
         simulate(TrackedNetworkState(scenario, λ), max_time = max_time, call_back = record)
 
-        push!(mean_jobs,  sum(in_system) / length(in_system))
-        push!(proportions, sum(in_transit) / sum(in_system))
+        push!(mean_jobs, running_mean)
+        push!(proportions, running_prop)
         push!(all_durations, durations)
     end    
 
@@ -131,13 +132,11 @@ end
 """
 Plots the simulation summarys (see plot_simulation_summary()) of all default scenarios run over a long simulation.
 """
-function run_default_sims()
-    lambda_range = 0.1:0.1:5
-    simulation_time = 10.0^4
+function run_default_sims(;lambda_range = 1.0:5.0, max_time = 10.0^4)
 
     for (i, scenario) in enumerate(get_scenarios()[1:4])
         plot_simulation_summary(scenario, 
-                                     max_time = simulation_time,
+                                     max_time = max_time,
                                      lambda_range = lambda_range,
                                      scenario_label = "scenario $i")
     end
@@ -159,27 +158,28 @@ end
 Runs simulations with varied arrival rate where the state only keeps track of queue and transit totals.
 Then plots the mean number of jobs in the system and Proportion of jobs orbiting between queues wrt λ.
 """
-function run_default_no_tracking()
-    lambda_range = 0.1:0.1:5
-    max_time = 10.0^4
+function run_default_no_tracking(;lambda_range = 1.0:5.0, max_time = 10.0^4)
 
     for (i, scenario) in enumerate(get_scenarios()[1:4])
         mean_jobs, proportions = Float64[], Float64[]
 
         for λ in lambda_range
-            in_system, in_transit = Int[], Int[]
-
+            num_calls, running_mean, running_prop = 0, 0, 0
+    
             function record(time::Float64, state::NetworkState) 
-                push!(in_system, total_count(state))
-                push!(in_transit, transit_count(state))
+                num_calls += 1
+                total_in_system = total_count(state)
+                running_mean = (running_mean * (num_calls - 1) + total_in_system) / num_calls
+                running_prop = (running_prop * (num_calls - 1) + transit_count(state) / max(total_in_system, 1)) / num_calls
                 return nothing
             end
-
-            simulate(NetworkState(scenario, λ), max_time = max_time, call_back = record, log_times = [max_time / 2])
-
-            push!(mean_jobs,  sum(in_system) / length(in_system))
-            push!(proportions, sum(in_transit) / sum(in_system))
+    
+            simulate(NetworkState(scenario, λ), max_time = max_time, call_back = record, log_times = [max_time - 0.0001])
+    
+            push!(mean_jobs, running_mean)
+            push!(proportions, running_prop)
         end    
+
 
         display(plot(lambda_range, mean_jobs, 
                         title = "Mean number of jobs in system scenario $i", 

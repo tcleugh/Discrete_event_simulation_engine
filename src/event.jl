@@ -1,4 +1,3 @@
-import Base: isless
 
 abstract type Event end
 
