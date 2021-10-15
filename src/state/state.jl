@@ -5,6 +5,7 @@ abstract type State end
 
 Returns the total number of jobs in all queues of the system """
 function queued_count end
+
 """ transit_count(state)::Int
 
 Returns the total number of jobs in transit between queues in the system """
@@ -15,41 +16,54 @@ function transit_count end
 Returns the number of jobs in the queue with given index """
 function num_in_queue end
 
-""" pop_transit(state)
+""" new_job(q, time, state)
 
-Removes and returns the next job in transit
+Adds a new job to the system in teh given queue
 """
-function pop_transit end
+function new_job end
 
-""" pop_queue(q::Int, state)
+""" new_transit(time, transit_time, state)
 
-Removes and returns the next job in specified queue
+Adds a new job to the system in transit
+"""
+function new_transit end
+
+""" pop_queue(q, time, state)
+
+Removes the first job in the given queue from the system
 """
 function pop_queue end
 
-""" push_queue(q::Int, time::Float64, state, job)
+""" queue_to_transit(q, time, transit_time, state)
 
-Adds job to the specified queue
+Moves the first job in the given queue into transit
 """
-function push_queue end
+function queue_to_transit end
 
-""" push_transit(time::Float64, state, job)
+""" pop_transit(time, state)
 
-Adds job to transit with destination q
+Removes the first job in transit from the system
 """
-function push_transit end
+function pop_transit end
 
-""" remove_job(time::Float64, transit_time::Float64, state, job
+""" transit_to_queue(q, time, state)
 
-Removed job from the system
+Adds the first job in transit to the given queue
 """
-function remove_job end
+function transit_to_queue end
 
-""" default_job(state)
+""" update_transit(time, transit_time, state)
 
-Returns a new job
+Changes the destination time of the first job in transit
 """
-function default_job end
+function update_transit end
+
+""" failed_arrival(time, state)
+
+Changes the destination time of the first job in transit
+"""
+function failed_arrival end
+
 
 @with_kw struct NetworkParameters
     L::Int #Number of queues
@@ -82,7 +96,7 @@ Returns a Gamma distribution with desired rate (inverse of shape) and SCV.
 rate_scv_gamma(desired_rate::Float64, desired_scv::Float64) = Gamma(1/desired_scv, desired_scv/desired_rate)
 
 """ Generates next arrival time from state """
-next_arrival_time(s::State)::Float64 = rand(Exponential(1/s.params.λ))
+next_arrival_time(s::State)::Float64 = rand(rate_scv_gamma(s.params.λ, s.params.gamma_scv))
 
 """ Generates next service time for the given queue from state """
 next_service_time(s::State, q::Int)::Float64 = rand(rate_scv_gamma(s.params.μ_vector[q], s.params.gamma_scv))

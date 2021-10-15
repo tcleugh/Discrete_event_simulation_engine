@@ -46,9 +46,9 @@ NetworkState(params::NetworkParameters, λ::Float64) = NetworkState(fill(0, para
                                                                        NetworkParameters(params, λ = λ))
 
 """
-The structure 'TrackedNetworkState' allows jobs to be tracked based on 'location' (in the queue, transit, or system)
+The structure 'FullTrackedState' allows jobs to be tracked based on 'location' (in the queue, transit, or system)
 """
-mutable struct TrackedNetworkState <: State
+mutable struct FullTrackedState <: State
     queues::Vector{Vector{Job}} #A vector of queues holding the jobs waiting in buffer
     in_transit::BinaryMinHeap{Job} #Jobs in transit between queues
     left_system::Vector{Job} #Jobs that have left the system
@@ -58,7 +58,7 @@ end
 """
 Constructs an initilized tracked network state from the given parameters
 """
-TrackedNetworkState(params::NetworkParameters) = TrackedNetworkState([Vector{Job}[] for _ in 1:params.L], # Initial queues -> empty vectors based on servers
+FullTrackedState(params::NetworkParameters) = FullTrackedState([Vector{Job}[] for _ in 1:params.L], # Initial queues -> empty vectors based on servers
                                                                      BinaryMinHeap{Job}(),                # Intial transit
                                                                      Vector{Job}[],                       # Initial left system
                                                                      params
@@ -67,7 +67,7 @@ TrackedNetworkState(params::NetworkParameters) = TrackedNetworkState([Vector{Job
 """
 Constructs an initilized tracked network state from the given parameters and altered λ
 """
-TrackedNetworkState(params::NetworkParameters, λ::Float64) = TrackedNetworkState([Vector{Job}[] for _ in 1:params.L], # Initial queues
+FullTrackedState(params::NetworkParameters, λ::Float64) = FullTrackedState([Vector{Job}[] for _ in 1:params.L], # Initial queues
                                                                                  BinaryMinHeap{Job}(),                # Intial transit
                                                                                  Vector{Job}[],                       # Initial left system
                                                                                  NetworkParameters(params, λ = λ)

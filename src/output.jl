@@ -87,7 +87,7 @@ function plot_simulation_summary(scenario::NetworkParameters;
     for λ in lambda_range
         num_calls, running_mean, running_prop, durations = 0, 0, 0, Float64[]
 
-        function record(time::Float64, state::TrackedNetworkState) 
+        function record(time::Float64, state::TrackedState) 
             num_calls += 1
             total_in_system = total_count(state)
             running_mean = (running_mean * (num_calls - 1) + total_in_system) / num_calls
@@ -99,7 +99,7 @@ function plot_simulation_summary(scenario::NetworkParameters;
             return nothing
         end
 
-        simulate(TrackedNetworkState(scenario, λ), max_time = max_time, call_back = record)
+        simulate(TrackedState(scenario, λ), max_time = max_time, call_back = record)
 
         push!(mean_jobs, running_mean)
         push!(proportions, running_prop)
@@ -147,7 +147,7 @@ Runs a short simulation of the given scenario printing the full state of the sys
 """
 function run_tracking_sim(scenario::NetworkParameters, λ::Float64; 
                             max_time::Float64 = 10.0, log_times::Vector{Float64} = [max_time - 10.0^(-10)], full_history::Bool = false)
-    simulate(TrackedNetworkState(scenario, λ), 
+    simulate(FullTrackedState(scenario, λ), 
                 max_time = max_time, 
                 call_back = (full_history) ? (time, state) -> nothing : (time, state) -> empty!(state.left_system),
                 log_times = log_times)

@@ -3,11 +3,12 @@ import Base: push!, isless, show
 
 include("event.jl")
     include("state/state.jl")
-    include("state/total_state.jl")
-    include("state/job.jl")
-    include("state/tracked_state.jl")
+        include("state/totals/total_state.jl")
+        include("state/tracking/job.jl")
+        include("state/tracking/tracked_state.jl")
+        include("state/full_tracking/full_job.jl")
+        include("state/full_tracking/full_tracked_state.jl")
 include("simulation.jl")
-
 include("output.jl")
 
 run_default_sims(lambda_range = 0.1:0.1:5, max_time = 10^4)

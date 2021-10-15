@@ -137,7 +137,7 @@ function plot_empirical_distribution(scenario::NetworkParameters;
 
         durations = Float64[]
 
-        function record_durations(time::Float64, state::TrackedNetworkState) 
+        function record_durations(time::Float64, state::FullTrackedState) 
             while length(state.left_system) > 0
                 job = pop!(state.left_system)
                 push!(durations, job.exit_time - job.entry_time)
@@ -145,7 +145,7 @@ function plot_empirical_distribution(scenario::NetworkParameters;
             return nothing
         end
 
-        init_state = TrackedNetworkState(scenario, λ)
+        init_state = FullTrackedState(scenario, λ)
 
         simulate(init_state, max_time = max_time, call_back = record_durations)
         
