@@ -110,11 +110,24 @@ end
 The main simulation function gets an initial state and an initial event that gets things going.
 Optional arguments are the maximal time for the simulation, times for logging events, and a call back function.
 """
-function simulate(init_state::State; 
-                    init_timed_event::TimedEvent = TimedEvent(ExternalArrivalEvent(), 0.0), 
+function simulate(scenario::NetworkParameters; 
+                    λ::Real = scenario.λ, 
+                    job_tracking::Symbol = :none, 
                     max_time::Real = 10.0, 
                     log_times::Vector{Float64} = Float64[],
-                    call_back = (time,state) -> nothing)
+                    call_back = (time,state) -> clear_left(state))
+    # Initializes the the state depeding on simulation mode
+    if job_tracking == :none 
+        state = NetworkState(scenario, convert(Float64, λ))
+    elseif job_tracking == :times 
+        state = TrackedState(scenario, convert(Float64, λ))
+    elseif job_tracking == :full 
+        state = FullTrackedState(scenario, convert(Float64, λ))
+    else
+        error("$mode is not a valid simulation mode")
+    end
+
+    init_timed_event = TimedEvent(ExternalArrivalEvent(), 0.0)
 
     #The event queue
     priority_queue = BinaryMinHeap{TimedEvent}()
@@ -126,10 +139,7 @@ function simulate(init_state::State;
         push!(priority_queue,TimedEvent(LogStateEvent(), lt))
     end
 
-    #initilize the state
-    state = deepcopy(init_state)
     time = 0.0
-
     call_back(time, state)
 
     #The main discrete event simulation loop

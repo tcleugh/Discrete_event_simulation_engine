@@ -85,24 +85,35 @@ function plot_simulation_summary(scenario::NetworkParameters;
     mean_jobs, proportions, all_durations = Float64[], Float64[], Vector{Float64}[]
 
     for λ in lambda_range
-        num_calls, running_mean, running_prop, durations = 0, 0, 0, Float64[]
+        prev_time, prev_total, prev_transit = 0.0, 0.0, 0.0
+        total_integral, transit_integral = 0.0, 0.0 
+        durations = Float64[]
 
         function record(time::Float64, state::TrackedState) 
-            num_calls += 1
-            total_in_system = total_count(state)
-            running_mean = (running_mean * (num_calls - 1) + total_in_system) / num_calls
-            running_prop = (running_prop * (num_calls - 1) + transit_count(state) / max(total_in_system, 1)) / num_calls
+            time_diff = time - prev_time
+            total_integral += prev_total * time_diff
+            transit_integral += prev_transit * time_diff
+            
+            prev_time = time
+            prev_total = total_count(state)
+            prev_transit = transit_count(state)
+
             while length(state.left_system) > 0
                 job = pop!(state.left_system)
                 push!(durations, duration(job))
-                end
+            end
             return nothing
         end
 
-        simulate(TrackedState(scenario, λ), max_time = max_time, call_back = record)
+        Random.seed!(0)
+        simulate(scenario, 
+                λ = λ, 
+                job_tracking = :times, 
+                max_time = max_time, 
+                call_back = record)
 
-        push!(mean_jobs, running_mean)
-        push!(proportions, running_prop)
+        push!(mean_jobs, total_integral / max_time)
+        push!(proportions, (transit_integral / total_integral))
         push!(all_durations, durations)
     end    
 
@@ -146,8 +157,14 @@ end
 Runs a short simulation of the given scenario printing the full state of the system.
 """
 function run_tracking_sim(scenario::NetworkParameters, λ::Float64; 
-                            max_time::Float64 = 10.0, log_times::Vector{Float64} = [max_time - 10.0^(-10)], full_history::Bool = false)
-    simulate(FullTrackedState(scenario, λ), 
+                            max_time::Float64 = 10.0, 
+                            log_times::Vector{Float64} = [max_time - 10.0^(-10)], 
+                            full_history::Bool = false)
+    
+        Random.seed!(0)
+        simulate(scenario, 
+                λ = λ, 
+                job_tracking = :full, 
                 max_time = max_time, 
                 call_back = (full_history) ? (time, state) -> nothing : (time, state) -> empty!(state.left_system),
                 log_times = log_times)
@@ -161,23 +178,32 @@ Then plots the mean number of jobs in the system and Proportion of jobs orbiting
 function run_default_no_tracking(;lambda_range = 1.0:5.0, max_time = 10.0^4)
 
     for (i, scenario) in enumerate(get_scenarios()[1:4])
-        mean_jobs, proportions = Float64[], Float64[]
+        mean_jobs, proportions = Float64[], Float64[] 
 
         for λ in lambda_range
-            num_calls, running_mean, running_prop = 0, 0, 0
+            prev_time, prev_total, prev_transit = 0.0, 0.0, 0.0
+            total_integral, transit_integral = 0.0, 0.0 
     
             function record(time::Float64, state::NetworkState) 
-                num_calls += 1
-                total_in_system = total_count(state)
-                running_mean = (running_mean * (num_calls - 1) + total_in_system) / num_calls
-                running_prop = (running_prop * (num_calls - 1) + transit_count(state) / max(total_in_system, 1)) / num_calls
+                time_diff = time - prev_time
+                total_integral += prev_total * time_diff
+                transit_integral += prev_transit * time_diff
+                
+                prev_time = time
+                prev_total = total_count(state)
+                prev_transit = transit_count(state)
                 return nothing
             end
     
-            simulate(NetworkState(scenario, λ), max_time = max_time, call_back = record, log_times = [max_time - 0.0001])
+            Random.seed!(0)
+            simulate(scenario, 
+                    λ = λ, 
+                    job_tracking = :none, 
+                    max_time = max_time, 
+                    call_back = record)
     
-            push!(mean_jobs, running_mean)
-            push!(proportions, running_prop)
+            push!(mean_jobs, total_integral / max_time)
+            push!(proportions, (transit_integral / total_integral))
         end    
 
 

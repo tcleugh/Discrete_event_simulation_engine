@@ -64,6 +64,12 @@ Changes the destination time of the first job in transit
 """
 function failed_arrival end
 
+""" clear_left(state)
+
+Clears the left_system record
+"""
+function clear_left end
+
 
 @with_kw struct NetworkParameters
     L::Int #Number of queues

@@ -16,16 +16,20 @@ TrackedState(params::NetworkParameters) = TrackedState([Vector{Job}[] for _ in 1
 """
 Constructs an initilized tracked network state from the given parameters and altered λ
 """
-TrackedState(params::NetworkParameters, λ::Real) = TrackedState([Vector{Job}[] for _ in 1:params.L], # Initial queues
+TrackedState(params::NetworkParameters, λ::Float64) = TrackedState([Vector{Job}[] for _ in 1:params.L], # Initial queues
                                                                     BinaryMinHeap{Job}(),                # Intial transit
                                                                     Vector{Job}[],                       # Initial left system
-                                                                    NetworkParameters(params, λ = convert(Float64, λ)))
+                                                                    NetworkParameters(params, λ = λ))
 
 queued_count(state::TrackedState)::Int = sum([length(state.queues[i]) for i in 1:length(state.queues)])
 
 transit_count(state::TrackedState)::Int = length(state.in_transit)
 
 num_in_queue(q::Int, state::TrackedState)::Int = length(state.queues[q])
+
+function clear_left(state::TrackedState)
+    empty!(state.left_system)
+end
 
 """ Prints the current state of the system"""
 function show(io::IO, state::TrackedState)

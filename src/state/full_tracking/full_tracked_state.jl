@@ -16,19 +16,20 @@ FullTrackedState(params::NetworkParameters) = FullTrackedState([Vector{FullJob}[
 """
 Constructs an initilized tracked network state from the given parameters and altered λ
 """
-FullTrackedState(params::NetworkParameters, λ::Real) = FullTrackedState([Vector{FullJob}[] for _ in 1:params.L], # Initial queues
+FullTrackedState(params::NetworkParameters, λ::Float64) = FullTrackedState([Vector{FullJob}[] for _ in 1:params.L], # Initial queues
                                                                                  BinaryMinHeap{FullJob}(),                # Intial transit
                                                                                  Vector{FullJob}[],                       # Initial left system
-                                                                                 NetworkParameters(params, λ = convert(Float64, λ)))
+                                                                                 NetworkParameters(params, λ = λ))
 
-""" Returns the total number of jobs in all queues of the system """
 queued_count(state::FullTrackedState)::Int = sum([length(state.queues[i]) for i in 1:length(state.queues)])
  
-""" Returns the total number of in transit between queues in the system """
 transit_count(state::FullTrackedState)::Int = length(state.in_transit)
 
-""" Returns the number of jobs in the given queue """
 num_in_queue(q::Int, state::FullTrackedState)::Int = length(state.queues[q])
+
+function clear_left(state::FullTrackedState)
+    empty!(state.left_system)
+end
 
 """ Prints a full history of all jobs that the system processes, sorted by entry time"""
 function show(io::IO, state::FullTrackedState)

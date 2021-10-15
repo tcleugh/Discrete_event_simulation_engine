@@ -16,23 +16,23 @@ NetworkState(params::NetworkParameters) = NetworkState(fill(0, params.L), # Init
 """
 Constructs an initilized network state from the given parameters and altered λ
 """
-NetworkState(params::NetworkParameters, λ::Real) = NetworkState(fill(0, params.L), # Initial queues
+NetworkState(params::NetworkParameters, λ::Float64) = NetworkState(fill(0, params.L), # Initial queues
                                                                 0,                 # Intial transit
                                                                 0,                 # Initital left
-                                                                NetworkParameters(params, λ = convert(Float64, λ)))
+                                                                NetworkParameters(params, λ = λ))
 
 
 
-""" Returns the total number of jobs in all queues of the system """
 queued_count(state::NetworkState)::Int = sum(state.queues)
 
-""" Returns the total number of in transit between queues in the system """
 transit_count(state::NetworkState)::Int = state.in_transit
 
-""" Returns the number of jobs in the given queue """
 num_in_queue(q::Int, state::NetworkState)::Int = state.queues[q]
 
-""" Prints the current state of the system"""
+function clear_left(state::NetworkState)
+    empty!(state.left_system)
+end
+
 function show(io::IO, state::NetworkState)
     print(io, "State:\n")
     for (i, queue) in enumerate(state.queues)
