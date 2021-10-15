@@ -106,9 +106,14 @@ function process_event(time::Float64, state::State, transit_event::InTransitEven
     return new_timed_events
 end
 
-"""
-The main simulation function gets an initial state and an initial event that gets things going.
-Optional arguments are the maximal time for the simulation, times for logging events, and a call back function.
+""" simulate(scenario, [λ, job_tracking, max_time, log_times, call_back])
+
+Runs a simulation of the given scenario and arrival rate until the max_time is reached.
+The simulation can be run with, no job tracking (:none) as default, only tracking job entry and exit times (:times) or
+tracking full job history (:full).
+
+An overview of the system state will be printed at the provided log_times.
+The call_back function will be called each time an event occurs.
 """
 function simulate(scenario::NetworkParameters; 
                     λ::Real = scenario.λ, 
