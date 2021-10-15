@@ -4,22 +4,23 @@ mutable struct TrackedState <: State
     in_transit::BinaryMinHeap{Job} #Jobs in transit between queues
     left_system::Vector{Job} #Jobs that have left the system
     params::NetworkParameters #The parameters of the queueing system
+    arrival_distr::Gamma{Float64}
+    travel_distr::Gamma{Float64}
+    service_distrs::Vector{Gamma{Float64}}
 end
 
 """
 Constructs an initilized tracked network state from the given parameters
 """
-TrackedState(params::NetworkParameters) = TrackedState([Vector{Job}[] for _ in 1:params.L], # Initial queues
-                                                            BinaryMinHeap{Job}(),                # Intial transit
-                                                            Vector{Job}[],                       # Initial left system
-                                                            params)
-"""
-Constructs an initilized tracked network state from the given parameters and altered λ
-"""
-TrackedState(params::NetworkParameters, λ::Float64) = TrackedState([Vector{Job}[] for _ in 1:params.L], # Initial queues
-                                                                    BinaryMinHeap{Job}(),                # Intial transit
-                                                                    Vector{Job}[],                       # Initial left system
-                                                                    NetworkParameters(params, λ = λ))
+TrackedState(params::NetworkParameters) = TrackedState(
+    [Vector{Job}[] for _ in 1:params.L], # Initial queues
+    BinaryMinHeap{Job}(),                # Intial transit
+    Vector{Job}[],                       # Initial left system
+    params,
+    rate_scv_gamma(params.λ, params.gamma_scv),
+    rate_scv_gamma(params.η, params.gamma_scv),
+    map((μ) -> rate_scv_gamma(μ, params.gamma_scv), params.μ_vector)
+    )
 
 queued_count(state::TrackedState)::Int = sum([length(state.queues[i]) for i in 1:length(state.queues)])
 

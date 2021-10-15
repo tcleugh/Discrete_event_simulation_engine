@@ -4,22 +4,23 @@ mutable struct FullTrackedState <: State
     in_transit::BinaryMinHeap{FullJob} #Jobs in transit between queues
     left_system::Vector{FullJob} #Jobs that have left the system
     params::NetworkParameters #The parameters of the queueing system
+    arrival_distr::Gamma{Float64}
+    travel_distr::Gamma{Float64}
+    service_distrs::Vector{Gamma{Float64}}
 end
 
 """
 Constructs an initilized tracked network state from the given parameters
 """
-FullTrackedState(params::NetworkParameters) = FullTrackedState([Vector{FullJob}[] for _ in 1:params.L], # Initial queues
-                                                                     BinaryMinHeap{FullJob}(),                # Intial transit
-                                                                     Vector{FullJob}[],                       # Initial left system
-                                                                     params)
-"""
-Constructs an initilized tracked network state from the given parameters and altered λ
-"""
-FullTrackedState(params::NetworkParameters, λ::Float64) = FullTrackedState([Vector{FullJob}[] for _ in 1:params.L], # Initial queues
-                                                                                 BinaryMinHeap{FullJob}(),                # Intial transit
-                                                                                 Vector{FullJob}[],                       # Initial left system
-                                                                                 NetworkParameters(params, λ = λ))
+FullTrackedState(params::NetworkParameters) = FullTrackedState(
+    [Vector{FullJob}[] for _ in 1:params.L], # Initial queues
+    BinaryMinHeap{FullJob}(),                # Intial transit
+    Vector{FullJob}[],                       # Initial left system
+    params,
+    rate_scv_gamma(params.λ, params.gamma_scv),
+    rate_scv_gamma(params.η, params.gamma_scv),
+    map((μ) -> rate_scv_gamma(μ, params.gamma_scv), params.μ_vector)
+    )
 
 queued_count(state::FullTrackedState)::Int = sum([length(state.queues[i]) for i in 1:length(state.queues)])
  

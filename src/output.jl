@@ -106,8 +106,7 @@ function plot_simulation_summary(scenario::NetworkParameters;
         end
 
         Random.seed!(0)
-        simulate(scenario, 
-                λ = λ, 
+        simulate(NetworkParameters(scenario, λ), 
                 job_tracking = :times, 
                 max_time = max_time, 
                 call_back = record)
@@ -156,17 +155,15 @@ end
 """
 Runs a short simulation of the given scenario printing the full state of the system.
 """
-function run_tracking_sim(scenario::NetworkParameters, λ::Float64; 
+function run_tracking_sim(scenario::NetworkParameters, λ::Real; 
                             max_time::Float64 = 10.0, 
-                            log_times::Vector{Float64} = [max_time - 10.0^(-10)], 
-                            full_history::Bool = false)
+                            log_times::Vector{Float64} = [max_time - 10.0^(-10)])
     
         Random.seed!(0)
-        simulate(scenario, 
-                λ = λ, 
+        simulate(NetworkParameters(scenario, λ),  
                 job_tracking = :full, 
                 max_time = max_time, 
-                call_back = (full_history) ? (time, state) -> nothing : (time, state) -> empty!(state.left_system),
+                call_back = (time, state) -> nothing,
                 log_times = log_times)
 end
 
@@ -196,8 +193,7 @@ function run_default_no_tracking(;lambda_range = 1.0:5.0, max_time = 10.0^4)
             end
     
             Random.seed!(0)
-            simulate(scenario, 
-                    λ = λ, 
+            simulate(NetworkParameters(scenario, λ),  
                     job_tracking = :none, 
                     max_time = max_time, 
                     call_back = record)
