@@ -1,4 +1,3 @@
-import Base: isless
 
 abstract type Event end
 
@@ -25,11 +24,3 @@ end
 struct InTransitEvent <: Event
     q::Int #The index of the destination queue
 end
-
-mutable struct Job 
-    event_time::Float64 #not sure 
-    entry_time::Float64 #time of job entry into system
-    exit_time::Float64 #time of job exit from system
-end
-
-isless(j1::Job, j2::Job) = j1.event_time < j2.event_time
