@@ -65,7 +65,7 @@ function get_scenarios()::Vector{NetworkParameters}
                                     η = 4.0, 
                                     μ_vector = ones(20),
                                     P = zeros(20,20),
-                                    Q = diagm(3=>ones(19), -19=>ones(3)),                             
+                                    Q = diagm(3=>0.8*ones(17), -17=>ones(3)), # changed from Yoni's advice                            
                                     p_e = vcat(1, zeros(19)),
                                     K = fill(5,20))
 

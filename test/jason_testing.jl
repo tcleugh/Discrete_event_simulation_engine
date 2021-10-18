@@ -24,13 +24,13 @@ tester = get_scenarios();
 #plot_empirical_distribution(tester[1], max_time=total_time, lambda_range=lamb_vals, scenario_label="first scenario")
 
 # new changes 
-run_default_sims(lambda_range = 1:0.5:5, max_time = 10^5)
-#run_tracking_sim(get_scenarios()[1], 3)
+#run_default_sims(lambda_range = 1:0.5:5, max_time = 10^5)
+run_tracking_sim(get_scenarios()[1], 3) #prints out history of what happened -> job states -> which queue -> when exits
 #run_default_no_tracking(lambda_range = 1:0.5:5, max_time = 10^5)
 
 """
 I changed the creation of the overflow matrix in scenario5 and tested it separately
 """
-#fifth_scen = tester[5];
-# comment 
-#plot_simulation_summary(fifth_scen, max_time = 10^5, scenario_label = "testing Fifth scenario")
+#fourth_scen = tester[4];
+ 
+#plot_simulation_summary(fourth_scen, max_time = 10^4, scenario_label = "testing fourth scenario", lambda_range = 0.1:0.1:2)
