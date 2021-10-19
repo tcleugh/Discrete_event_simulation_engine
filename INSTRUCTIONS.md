@@ -15,10 +15,10 @@ will generate all five scenarios, simulate each one in order (1-5), and plot all
 ### Option 2 -> run_tracking_sim(scenario, $\lambda$; ... )
 
 This function by the name of 
-'''
+```
 run_tracking_sim()
-'''
+```
 will print out the full state of the system - essentially what happens, when and where. The main inputs of scenario and $\lambda$ take in the specific scenario you want to run (eg third) and $\lambda$ value (eg 2.5). The output will show numbers corresponding to queue number, and letters for what event took place. Here is an example of running it with the values mentioned:
-'''
+```
 run_tracking_sim(get_scenarios()[3], 2.5)
-'''
+```
