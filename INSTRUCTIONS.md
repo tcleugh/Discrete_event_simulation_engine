@@ -7,18 +7,26 @@ __However__, for everything to work properly, please first run the file discrete
 ### Option 1 -> run_default_sims() 
 
 This function by the name of 
-'''
+```
 run_default_sims()
-'''
-will generate all five scenarios, simulate each one in order (1-5), and plot all three required summary plots. You are able to make use of two optional inputs: lambda_range and max_time. For max_time, it defaults to $10^4$ however larger times are fine to use. The lambda_range defaults to $1:5$ but you can also specify your own range, for example $1:0.2:5$ .
+```
+will generate all five scenarios, simulate each one in order (1-5), and plot all three required summary plots. You are able to make use of two optional inputs: lambda_range and max_time. For max_time, it defaults to 10^4 however larger times are fine to use. The lambda_range defaults to 1:5 but you can also specify your own range, for example 1:0.2:5.
 
-### Option 2 -> run_tracking_sim(scenario, $\lambda$; ... )
+### Option 2 -> run_tracking_sim(scenario, lambda; ... )
 
 This function by the name of 
 ```
 run_tracking_sim()
 ```
-will print out the full state of the system - essentially what happens, when and where. The main inputs of scenario and $\lambda$ take in the specific scenario you want to run (eg third) and $\lambda$ value (eg 2.5). The output will show numbers corresponding to queue number, and letters for what event took place. Here is an example of running it with the values mentioned:
+will print out the full state of the system - essentially what happens, when and where. The main inputs of scenario and lambda take in the specific scenario you want to run (eg third) and lambda value (eg 2.5). The output will show numbers corresponding to queue number, and letters for what event took place. Here is an example of running it with the values mentioned:
 ```
 run_tracking_sim(get_scenarios()[3], 2.5)
 ```
+
+### Option 3 -> run_default_no_tracking()
+
+This function by the name of 
+```
+run_default_no_tracking()
+```
+is very similar to the default simulation runner, however the state only keeps track of queue and transit totals. It will then output the first two summary plots (mean, proportion), but not the distribution. You can again specify your own max_time and lambda_range as optional arguments. 
