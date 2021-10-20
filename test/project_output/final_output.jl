@@ -26,7 +26,7 @@ function results(max_time)
 
     plot_simulation_summary(scenarios[4], 
                             max_time = max_time,
-                            lambda_range = LinRange(0.1, 0.95, 20),
+                            lambda_range = LinRange(0.1, 0.9, 20),
                             scenario_label = "scenario 4",
                             save_folder = "test/project_output/scenario_4")
 
