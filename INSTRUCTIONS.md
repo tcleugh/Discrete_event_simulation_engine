@@ -30,3 +30,11 @@ This function by the name of
 run_default_no_tracking()
 ```
 is very similar to the default simulation runner, however the state only keeps track of queue and transit totals. It will then output the first two summary plots (mean, proportion), but not the distribution. You can again specify your own max_time and lambda_range as optional arguments. 
+
+### Option 4 -> plot_simulation_summary(scenario, ...)
+
+This function by the name of 
+```
+plot_simulation_summary()
+```
+is the main function used inside of run_default_sims() and can be used by itself. It is setup to output all three required summary plots (mean, proportion, cdf) by specifying the single scenario you wish to investigate. As before, you can input a selected lambda_range and max_time, but additionally you can input a scenario_label (as a string). This is mainly used for running all scenarios at once to place the right label at each iteration.  
