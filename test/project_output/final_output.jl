@@ -24,17 +24,17 @@ function results(max_time)
     #                        scenario_label = "scenario 3",
     #                        save_folder = "test/project_output/scenario_3")
 
-    plot_simulation_summary(scenarios[4], 
-                            max_time = max_time,
-                            lambda_range = LinRange(0.1, 0.9, 20),
-                            scenario_label = "scenario 4",
-                            save_folder = "test/project_output/scenario_4")
-
-    #plot_simulation_summary(scenarios[5], 
+    #plot_simulation_summary(scenarios[4], 
     #                        max_time = max_time,
-    #                        lambda_range = LinRange(0.1, 10, 20),
-    #                        scenario_label = "scenario 5",
-    #                        save_folder = "test/project_output/scenario_5")
+    #                        lambda_range = LinRange(0.1, 0.9, 20),
+    #                        scenario_label = "scenario 4",
+    #                        save_folder = "test/project_output/scenario_4")
+    #
+    plot_simulation_summary(scenarios[5], 
+                            max_time = max_time,
+                            lambda_range = LinRange(0.1, 1, 20),
+                            scenario_label = "scenario 5",
+                            save_folder = "test/project_output/scenario_5")
     
 end
 
