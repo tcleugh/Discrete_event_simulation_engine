@@ -144,7 +144,7 @@ function plot_simulation_summary(scenario::NetworkParameters;
         index = convert(Int, floor(i))
         n = length(all_durations[index])
         #plot!(sort(all_durations[index]), (1:n)./n, label = "λ = $(lambda_range[index])")
-        plot!(sort(all_durations[index])[convert.(Int, floor.(LinRange(1,n, 100)))], 1:100, label = "λ = $(round(lambda_range[index], 2))")
+        plot!(sort(all_durations[index])[convert.(Int, floor.(LinRange(1,n, 100)))], 1:100, label = "λ = $(round(lambda_range[index], digits = 2))")
     end
     if save_folder != :none
         savefig(p3, save_folder * "/ecdf $(scenario_label).png")
