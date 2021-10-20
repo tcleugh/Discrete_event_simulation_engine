@@ -80,7 +80,8 @@ Also plots the emprical distribution of the sojurn time of jobs in the system va
 function plot_simulation_summary(scenario::NetworkParameters;
                                                 max_time::Real = 10.0^7,
                                                 scenario_label::String = "",
-                                                lambda_range = 1.0:5.0)
+                                                lambda_range = 1.0:5.0,
+                                                save_folder::Union{Symbol, String} = :none)
 
     mean_jobs, proportions, all_durations = Float64[], Float64[], Vector{Float64}[]
 
@@ -116,26 +117,39 @@ function plot_simulation_summary(scenario::NetworkParameters;
         push!(all_durations, durations)
     end    
 
-    display(plot(lambda_range, mean_jobs, 
+    p1 = plot(lambda_range, mean_jobs, 
                     title = "Mean number of jobs in system $scenario_label", 
-                    xlabel = "λ", 
+                    xlabel = "λ (mean arrival rate)", 
                     ylabel = "Mean num jobs", 
-                    label = false))
+                    label = false)
+    if save_folder != :none
+        savefig(p1, save_folder * "/mean $(scenario_label).png")
+    end
+    display(p1)
 
-    display(plot(lambda_range, proportions, 
+    p2= plot(lambda_range, proportions, 
                     title = "Proportion of jobs in orbit $scenario_label", 
-                    xlabel = "λ", 
+                    xlabel = "λ (mean arrival rate)", 
                     ylabel = "Proportion", 
-                    label = false)) 
+                    label = false)
+    if save_folder != :none
+        savefig(p2, save_folder * "/proportion $(scenario_label).png")
+    end
+    display(p2)
 
 
-    p = plot(title = "Empirical CDF of sojurn time $scenario_label", xlabel = "Duration", ylabel = "Probability")
+    p3 = plot(title = "Empirical CDF of sojurn time $scenario_label", xlabel = "Duration", ylabel = "Probability")
+    times = 0:0.01:max_time
     for i in LinRange(1, length(lambda_range), 5)
         index = convert(Int, floor(i))
         n = length(all_durations[index])
-        plot!(sort(all_durations[index]), (1:n)./n, label = "λ = $(lambda_range[index])")
+        #plot!(sort(all_durations[index]), (1:n)./n, label = "λ = $(lambda_range[index])")
+        plot!(sort(all_durations[index])[convert.(Int, floor.(LinRange(1,n, 100)))], 1:100, label = "λ = $(round(lambda_range[index], 2))")
     end
-    display(p)
+    if save_folder != :none
+        savefig(p3, save_folder * "/ecdf $(scenario_label).png")
+    end
+    display(p3)
 
 end
 
