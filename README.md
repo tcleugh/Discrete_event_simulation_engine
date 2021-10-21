@@ -10,6 +10,8 @@ If you are interested, you can read about the in-depth description [here](https:
 
 **There** are many files and many functions defined throughout the repository. Below, we will give you some basic informaiton on different ways that you can run the simulations and see what is happening. 
 
+To produce the project plots over the long horizon, run the file named final_output.jl (note: this will take a LONG time). To produce similar plots over a much shorter time span, run the exploratory_plots.jl file. Finally, for specific / custom simulations, please read on to the below options. 
+
 __However__, for everything to work properly, please first run the file discrete_event_simulation_project.jl so that all functions / methods are loaded. 
 
 ### Option 1 -> run_default_sims() 
